@@ -263,26 +263,31 @@ else()
   set(DO_CLANG_TIDY "${CLANG_TIDY_EXE}" )
 endif()
 
+find_program(CCACHE_FOUND ccache)
+if(CCACHE_FOUND)
+    message(STATUS "Found ccache: ${CCACHE_FOUND}")
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        add_definitions(-Qunused-arguments)        
+    endif()
+endif(CCACHE_FOUND)
+
+
 # name the executable and all source files
 add_clang_executable(insights
     AutoStmtHandler.cpp
-    ClassOperatorHandler.cpp
     CodeGenerator.cpp
     CompilerGeneratedHandler.cpp
     DPrint.cpp
-    IfStmtHandler.cpp
+    FunctionDeclHandler.cpp
     ImplicitCastHandler.cpp
     Insights.cpp
     InsightsBase.cpp
     InsightsHelpers.cpp
-    LambdaHandler.cpp
-    NRVOHandler.cpp
     OutputFormatHelper.cpp
-    RangeForStmtHandler.cpp
     StaticAssertHandler.cpp
-    StaticHandler.cpp
-    StdInitializerListHandler.cpp
-    StructuredBindingsHandler.cpp
     TemplateHandler.cpp
     UserDefinedLiteralHandler.cpp
 )
@@ -368,9 +373,15 @@ if(DOXYGEN_FOUND)
     )
 endif(DOXYGEN_FOUND)
 
+# XXX: hack to allow coverage build to run tests which fail
+set(TEST_FAILURE_IS_OK "")
+if(INSIGHTS_COVERAGE)
+    set(TEST_FAILURE_IS_OK "--failure-is-ok")
+endif()
+
 # add a target to generate run tests
 add_custom_target(tests
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/runTest.py --insights ${CMAKE_CURRENT_BINARY_DIR}/insights --cxx ${CMAKE_CXX_COMPILER}
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/runTest.py --insights ${CMAKE_CURRENT_BINARY_DIR}/insights --cxx ${CMAKE_CXX_COMPILER} ${TEST_FAILURE_IS_OK}
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/testSTDIN.sh ${CMAKE_CURRENT_BINARY_DIR}/insights
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/insights ${CMAKE_CURRENT_SOURCE_DIR}/tests/runTest.py
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests

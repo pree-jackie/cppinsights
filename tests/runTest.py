@@ -96,11 +96,13 @@ def main():
     parser.add_argument('--cxx',            help='C++ compiler to used', default='/usr/local/clang-current/bin/clang++')
     parser.add_argument('--docker',         help='Run tests in docker container', action='store_true')
     parser.add_argument('--docker-image',   help='Docker image name', default='cppinsights-runtime')
+    parser.add_argument('--failure-is-ok',  help='Failing tests are ok', default=False, action='store_true')
     parser.add_argument('args', nargs=argparse.REMAINDER)
     args = vars(parser.parse_args())
 
     insightsPath  = args['insights']
     remainingArgs = args['args']
+    bFailureIsOk  = args['failure_is_ok']
 
     if 0 == len(remainingArgs):
         cppFiles = [f for f in os.listdir(mypath) if (os.path.isfile(os.path.join(mypath, f)) and f.endswith('.cpp'))]
@@ -139,6 +141,10 @@ def main():
             compileErrorFile = os.path.join(mypath, fileName + '.cerr')
             if os.path.isfile(compileErrorFile):
                 ce = open(compileErrorFile, 'r').read()
+
+                # Linker errors name the tmp file and not the .tmp.cpp, replace the name here to be able to suppress
+                # these errors.
+                ce = re.sub('(.*).cpp:', '.tmp:', ce)
 
                 if ce == stderr:
                     print '[PASSED] Compile: %s' %(f)
@@ -188,8 +194,10 @@ def main():
     print '-----------------------------------------------------------------'
     print 'Tests passed: %d/%d' %(filesPassed, expectedToPass)
 
-#    return expectedToPass != filesPassed # note bash expects 0 for ok
-    return 0
+    if bFailureIsOk:
+        return 0
+
+    return expectedToPass != filesPassed # note bash expects 0 for ok
 #------------------------------------------------------------------------------
 
 

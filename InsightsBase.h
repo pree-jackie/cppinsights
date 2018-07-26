@@ -15,7 +15,6 @@
 
 #include <unordered_map>
 
-#include "InsightsStrongTypes.h"
 #include "OutputFormatHelper.h"
 //-----------------------------------------------------------------------------
 
@@ -31,14 +30,7 @@ protected:
     {
     }
 
-    STRONG_BOOL(SkipConstexpr);
-
-    static void        GenerateFunctionPrototype(OutputFormatHelper& outputFormatHelper, const FunctionDecl& FD);
-    static void        InsertAccessModifierAndNameWithReturnType(OutputFormatHelper&  outputFormatHelper,
-                                                                 const CXXMethodDecl& decl,
-                                                                 SkipConstexpr        skipConstexpr = SkipConstexpr::No);
-    static const char* AccessToString(const CXXMethodDecl& decl);
-
+protected:
     bool SkipIfAlreadySeen(const Stmt* stmt);
 
 private:

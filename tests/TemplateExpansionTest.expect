@@ -2,8 +2,9 @@ template <template <typename> class... Templates>
 struct template_tuple {};
 /* First instantiated from: TemplateExpansionTest.cpp:9 */
 #ifdef INSIGHTS_USE_TEMPLATE
-class template_tuple<identity>
+struct template_tuple<identity>
 {
+  inline ~template_tuple() noexcept = default;
   
 };
 
@@ -23,9 +24,11 @@ template_tuple<identity> f7<identity>()
 #endif
 
 
-void foo2() {
+void foo2()
+{
   f7<identity>();
 }
+
 
 
   template<typename> class A { };
@@ -34,18 +37,26 @@ void foo2() {
   #ifdef INSIGHTS_USE_TEMPLATE
   class B<Test, Test>
   {
+    inline constexpr B() noexcept = default;
+    inline ~B() = default;
+    inline constexpr B(const B<Test, Test> &) = default;
+    inline constexpr B(B<Test, Test> &&) = default;
     
   };
   
   #endif
   
   int foo();
+  
 
   template<typename> class testType { };
   /* First instantiated from: TemplateExpansionTest.cpp:43 */
   #ifdef INSIGHTS_USE_TEMPLATE
   class testType<int>
   {
+    inline constexpr testType() noexcept = default;
+    inline constexpr testType(const testType<int> &) = default;
+    inline constexpr testType(testType<int> &&) = default;
     
   };
   
@@ -55,7 +66,7 @@ void foo2() {
   template<int fp(void)> class testDecl { };
   /* First instantiated from: TemplateExpansionTest.cpp:45 */
   #ifdef INSIGHTS_USE_TEMPLATE
-  class testDecl</* INSIGHTS-TODO: CodeGenerator.cpp:964 stmt: Function */>
+  class testDecl<int (*)()>
   {
     
   };
@@ -77,6 +88,9 @@ void foo2() {
   #ifdef INSIGHTS_USE_TEMPLATE
   class testIntegral<2>
   {
+    inline constexpr testIntegral() noexcept = default;
+    inline constexpr testIntegral(const testIntegral<2> &) = default;
+    inline constexpr testIntegral(testIntegral<2> &&) = default;
     
   };
   
@@ -93,6 +107,10 @@ void foo2() {
   #ifdef INSIGHTS_USE_TEMPLATE
   class C<Test, Test>
   {
+    B<Test, Test> testTemplateExpansion;
+    inline constexpr C() noexcept = default;
+    inline constexpr C(const C<Test, Test> &) = default;
+    inline constexpr C(C<Test, Test> &&) = default;
     
   };
   
@@ -104,6 +122,9 @@ void foo2() {
   #ifdef INSIGHTS_USE_TEMPLATE
   class testExpr<4, 1>
   {
+    inline constexpr testExpr() noexcept = default;
+    inline constexpr testExpr(const testExpr<4, 1> &) = default;
+    inline constexpr testExpr(testExpr<4, 1> &&) = default;
     
   };
   
@@ -115,6 +136,9 @@ void foo2() {
   #ifdef INSIGHTS_USE_TEMPLATE
   class testPack<0, 1, 2, 4>
   {
+    inline constexpr testPack() noexcept = default;
+    inline constexpr testPack(const testPack<0, 1, 2, 4> &) = default;
+    inline constexpr testPack(testPack<0, 1, 2, 4> &&) = default;
     
   };
   
@@ -125,20 +149,15 @@ void foo2() {
 template<typename T>
 struct Test {};
 
-int main() {
-
-
-    C<Test, Test> te;
-
-    testType<int> type;
-    
-    testDecl<foo> a{};
-    testDecl<nullptr> b{};
-
-    testIntegral<2> integral;
-
-    testExpr<2*2, 1> expr;
-
-    testPack<0, 1, 2, 4> pack;
+int main()
+{
+  C<Test, Test> te = C<Test, Test>();
+  testType<int> type = testType<int>();
+  testDecl<foo> a = {};
+  testDecl<nullptr> b = {};
+  testIntegral<2> integral = testIntegral<2>();
+  testExpr<2 * 2, 1> expr = testExpr<4, 1>();
+  testPack<0, 1, 2, 4> pack = testPack<0, 1, 2, 4>();
 }
+
 

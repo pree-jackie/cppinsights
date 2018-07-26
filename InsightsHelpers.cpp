@@ -140,15 +140,19 @@ const std::string EvaluateAsFloat(const FloatingLiteral& expr)
 }
 //-----------------------------------------------------------------------------
 
-const VarDecl* GetVarDeclFromDeclRefExpr(const DeclRefExpr* declRefExpr)
+static const VarDecl* GetVarDeclFromDeclRefExpr(const DeclRefExpr& declRefExpr)
 {
-    if(nullptr != declRefExpr) {
-        const auto* valueDecl = declRefExpr->getDecl();
+    const auto* valueDecl = declRefExpr.getDecl();
 
-        return dyn_cast_or_null<VarDecl>(valueDecl);
-    }
+    return dyn_cast_or_null<VarDecl>(valueDecl);
+}
+//-----------------------------------------------------------------------------
 
-    return nullptr;
+std::string GetNameAsWritten(const QualType& t)
+{
+    SplitQualType T_split = t.split();
+
+    return QualType::getAsString(T_split, InsightsPrintingPolicy);
 }
 //-----------------------------------------------------------------------------
 
@@ -189,7 +193,6 @@ static std::string GetScope(const DeclContext* declCtx)
 static std::string GetNameInternal(const QualType& t, const Unqualified unqualified)
 {
     if(t.getTypePtrOrNull()) {
-        const std::string cvqStr{t.getQualifiers().getAsString()};
         std::string       refOrPointer{};
         const RecordType* recordType = [&]() -> const RecordType* {
             const auto& ct  = t.getCanonicalType();
@@ -213,6 +216,13 @@ static std::string GetNameInternal(const QualType& t, const Unqualified unqualif
 
         if(recordType) {
             if(const auto* decl = recordType->getDecl()) {
+                const std::string cvqStr{[&]() {
+                    if(const auto* refType = dyn_cast_or_null<ReferenceType>(t.getTypePtrOrNull())) {
+                        return refType->getPointeeTypeAsWritten().getLocalQualifiers().getAsString();
+                    }
+
+                    return t.getLocalQualifiers().getAsString();
+                }()};
 
                 if(const auto* tt = dyn_cast_or_null<ClassTemplateSpecializationDecl>(decl)) {
                     if(const auto* x = t.getBaseTypeIdentifier()) {
@@ -343,7 +353,7 @@ std::string GetTypeNameAsParameter(const QualType& t, const std::string& varName
 
 static bool IsTrivialStaticClassVarDecl(const DeclRefExpr& declRefExpr)
 {
-    if(const VarDecl* VD = GetVarDeclFromDeclRefExpr(&declRefExpr)) {
+    if(const VarDecl* VD = GetVarDeclFromDeclRefExpr(declRefExpr)) {
         return IsTrivialStaticClassVarDecl(*VD);
     }
 
@@ -388,7 +398,7 @@ std::string GetName(const DeclRefExpr& declRefExpr)
         // this case, as we teared that variable apart, we need to adjust the variable named and add a reinterpret
         // cast
         if(IsTrivialStaticClassVarDecl(declRefExpr)) {
-            if(const VarDecl* VD = GetVarDeclFromDeclRefExpr(&declRefExpr)) {
+            if(const VarDecl* VD = GetVarDeclFromDeclRefExpr(declRefExpr)) {
                 if(const auto* cxxRecordDecl = VD->getType()->getAsCXXRecordDecl()) {
                     plainName = StrCat(
                         "*reinterpret_cast<", GetName(*cxxRecordDecl), "*>(", BuildInternalVarName(plainName), ")");
@@ -400,6 +410,18 @@ std::string GetName(const DeclRefExpr& declRefExpr)
     }
 
     return name;
+}
+//-----------------------------------------------------------------------------
+
+std::string GetNameAsFunctionPointer(const QualType& t)
+{
+    std::string typeName{GetName(t)};
+
+    if(!t->isFunctionPointerType()) {
+        InsertBefore(typeName, "(", "(*)");
+    }
+
+    return typeName;
 }
 //-----------------------------------------------------------------------------
 
@@ -415,10 +437,12 @@ const char* GetNoExcept(const FunctionDecl& decl)
 }
 //-----------------------------------------------------------------------------
 
-const char* GetConst(const CXXMethodDecl& decl)
+const char* GetConst(const FunctionDecl& decl)
 {
-    if(decl.isConst()) {
-        return kwSpaceConst;
+    if(const auto* methodDecl = dyn_cast_or_null<CXXMethodDecl>(&decl)) {
+        if(methodDecl->isConst()) {
+            return kwSpaceConst;
+        }
     }
 
     return "";

@@ -7,6 +7,7 @@
 
 #include "UserDefinedLiteralHandler.h"
 #include "CodeGenerator.h"
+#include "DPrint.h"
 #include "InsightsMatchers.h"
 //-----------------------------------------------------------------------------
 
@@ -22,19 +23,12 @@ UserDefinedLiteralHandler::UserDefinedLiteralHandler(Rewriter& rewrite, MatchFin
     matcher.addMatcher(
         userDefinedLiteral(unless(anyOf(isExpansionInSystemHeader(),
                                         isMacroOrInvalidLocation(),
-                                        hasAncestor(cxxOperatorCallExpr()),
                                         hasAncestor(userDefinedLiteral()),
                                         isTemplate,
                                         /* if we match the top-most CXXOperatorCallExpr we will see all
                                            descendants. So filter them here to avoid getting them multiple times */
-                                        hasAncestor(cxxOperatorCallExpr()),
-                                        hasLambdaAncestor,
-                                        hasAncestor(implicitCastExpr(hasMatchingCast())),
-#ifdef MATCH_CXX_MEM_CEXPR
-                                        hasAncestor(cxxMemberCallExpr()),
-#endif
-                                        hasAncestor(unaryOperator(anyOf(hasOperatorName("++"), hasOperatorName("--")))),
-                                        hasAncestor(cxxForRangeStmt()))))
+                                        hasAncestor(functionDecl()),
+                                        hasAncestor(implicitCastExpr(hasMatchingCast())))))
             .bind("udl"),
         this);
 }

@@ -34,7 +34,7 @@
       template<>
       inline bool operator!=<const char *, 0>(const char *const & ptr, null_sentinal_t)
       {
-        return !(operator==(ptr, null_sentinal_t{  }));
+        return !(operator==(ptr, null_sentinal_t{}));
       }
       #endif
       
@@ -50,12 +50,16 @@
       friend bool operator!=(null_sentinal_t, Lhs const& ptr) {
         return !(null_sentinal_t{}==ptr);
       }
-      friend bool operator==(null_sentinal_t, null_sentinal_t) {
+      friend inline bool operator==(null_sentinal_t, null_sentinal_t)
+      {
         return true;
       }
-      friend bool operator!=(null_sentinal_t, null_sentinal_t) {
+      
+      friend inline bool operator!=(null_sentinal_t, null_sentinal_t)
+      {
         return false;
       }
+      
     /* public: inline ~null_sentinal_t() noexcept; */
     /* public: inline constexpr null_sentinal_t(); */
     /* public: inline constexpr null_sentinal_t(const null_sentinal_t &) noexcept; */
@@ -70,36 +74,37 @@ struct str_view {
 };
 /* First instantiated from: RangeForStmtHandler3Test.cpp:49 */
 #ifdef INSIGHTS_USE_TEMPLATE
-class str_view<char>
+struct str_view<char>
 {
+  const char * ptr;
+  inline const char * begin() const
+  {
+    return this->ptr;
+  }
+  
+  inline null_sentinal_t end() const
+  {
+    return {};
+  }
+  
+  inline ~str_view() noexcept = default;
   
 };
 
 #endif
 
-int main() {
+int main()
+{
+  {
+    str_view<char> && __range1 = str_view<char>{"hello world\n"};
+    const char * __begin1 = __range1.begin();
+    null_sentinal_t __end1 = __range1.end();
     
+    for( ; operator!=(__begin1, null_sentinal_t(__end1)); ++__begin1 )
     {
-       str_view<char> && __range1 = str_view<char>{ "hello world\n" };
-       const char * __begin1 = __range1.begin();
-       null_sentinal_t __end1 = __range1.end();
-       
-       for( ; operator!=(__begin1, null_sentinal_t(__end1)); ++__begin1 )
-       {
-         char c = *__begin1;
-         std::operator<<(std::cout, c);
-       }
-     }
-
-#if 0        
-        auto&& range = str_view<char>{"hello world\n"};
-        using std::begin; using std::end;
-        auto start = range.begin();
-        auto finish = range.end();
-        for( ; start != finish; ++start )
-        {
-            char c=*start;
-            std::cout << c;
-        }
-#endif
+      char c = *__begin1;
+      std::operator<<(std::cout, c);
+    }
+  }
 }
+
